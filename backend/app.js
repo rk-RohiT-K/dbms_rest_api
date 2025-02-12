@@ -46,14 +46,18 @@ app.use(
 // TODO: Implement authentication middleware
 // Redirect unauthenticated users to the login page with respective status code
 function isAuthenticated(req, res, next) {
-  
+  if(!req.session.userId) {
+    res.status(401).json({ message: "Unauthorized" });
+  } else {
+    next();
+  }
 }
 
 // TODO: Implement user signup logic
 // return JSON object with the following fields: {username, email, password}
 // use correct status codes and messages mentioned in the lab document
 app.post('/signup', isLoggedIn, async (req, res) => {
-
+  
 });
 
 // TODO: Implement user signup logic
