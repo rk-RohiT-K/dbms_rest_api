@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router";
+import React from "react";
+import { Router, Route, Routes } from "react-router";
 import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -10,16 +11,18 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/products" element={<Products />} />
-      <Route path="/cart" element={<Cart />} />
-      <Route path="/order-confirmation" element={<OrderConfirmation />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Router>
+      <Routes>
+        <Route exact path="/" component={Home} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/login" component={Login} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/products" component={Products} />
+        <Route path="/cart" component={Cart} />
+        <Route path="/order-confirmation" component={OrderConfirmation} />
+        <Route path="*" component={NotFound} />
+      </Routes>
+    </Router>
   );
 }
 
