@@ -274,7 +274,7 @@ app.post("/place-order", isAuthenticated, async (req, res) => {
     if(!req.session.userId){
       return res.status(400).json({message: 'Unauthorized'});
     }
-    const order_items = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, (c.quantity * p.price) AS total_item_price FROM cart c JOIN products p ON c.item_id == p.product_id AND c.user_id = $1',[req.session.userId]);
+    const order_items = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, p.stock_quantity FROM cart c JOIN products p ON c.item_id == p.product_id AND c.user_id = $1',[req.session.userId]);
 
     if(order_items.rows.length <= 0){
       return res.status(400).json( "Cart is empty");
@@ -283,14 +283,19 @@ app.post("/place-order", isAuthenticated, async (req, res) => {
     let tot_amt = 0;
     order_items.rows.forEach(elem =>{
       tot_amt += elem.total_item_price;
+      if(elem.quantity > elem.stock_quantity){
+        return res.status(400).json({message: "Insufficient stock for ${elem.name}"});
+      }
     });
 
     await pool.query('BEGIN');
     const orderId = await pool.query('INSERT INTO orders (user_id, order_date, total_amount) VALUES ($1,$2,$3) RETURNING order_id',[req.session.userId, new Date(),tot_amt]);
+    // storing the order_id in session state
+    // req.session.orderId = orderId;
     //initiate 
-    order_items.rows.forEach(elem => {
-      await pool.query('INSERT INTO orderitems (order_id, product_id,quantity,price) VALUES ($1,$2,$3,$4)', orderId,elem.product_id,elem.quantity,elem.price);
-    });
+    await Promise.all(order_items.rows.map(elem => {
+      pool.query('INSERT INTO orderitems (order_id, product_id,quantity,price) VALUES ($1,$2,$3,$4)', orderId,elem.product_id,elem.quantity,elem.price);
+    }));
     await pool.query('COMMIT')
     return res.status(200).json({ message: "Order placed successfully"});
     
@@ -299,7 +304,7 @@ app.post("/place-order", isAuthenticated, async (req, res) => {
   catch(err)
   {
     pool.query('ROLLBACK');
-    return res.status(500).json({message: 'Error listing products'});
+    return res.status(500).json({message: 'Error placing order'});
   }
 });
 
@@ -308,15 +313,24 @@ app.post("/place-order", isAuthenticated, async (req, res) => {
 app.get("/order-confirmation", isAuthenticated, async (req, res) => {
   try
   {
-    if(!req.session.userId){
-      return res.status(400).json({message: 'Unauthorized'});
+    // assuming that order confirmation only occurs after order is placed.
+    // storing the orderId in session 
+    // othereise can user select * from orders where user_id = $1 ORDER BY order_dat DESC; and get the first row.
+    // But it seems have to use the query only.
+    const latest_order = await pool.query('select * from orders where user_id = $1 ORDER BY order_dat DESC LIMIT 1');
+    if(!latest_order.rows.length > 0){
+      return res.status(400).json({message: 'Order not found'});
     }
-    const prods = await pool.query('SELECT * FROM products;');
-    return res.status(200).json({message: 'Products fetched successfully',products: prods.rows});
+    const ordr = await pool.query('SELECT * FROM orders WHERE order_id = $1', [req.session.orderId]);
+    const ordr_items = await pool.query('SELECT o.order_id, o.product_id, o.quantity, o.price, p.name AS product_name FROM order_items o JOIN products p ON o.product_id = p.product_id WHERE o.order_id = $1',[req.session.orderId]);
+    // delete req.session.orderId;
+    return res.status(200).json({message: 'Order fetch successfully',order:ordr.rows[0], orderItems: ordr_items.rows});
+    
+
   }
   catch(err)
   {
-    return res.status(500).json({message: 'Error listing products'});
+    return res.status(500).json({message: 'Error fetching order details'});
   }
 });
 
