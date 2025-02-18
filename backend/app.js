@@ -10,10 +10,10 @@ const port = 4000;
 // PostgreSQL connection
 // NOTE: use YOUR postgres username and password here
 const pool = new Pool({
-  user: 'your_username',
+  user: 'rohitkumar',
   host: 'localhost',
   database: 'ecommerce',
-  password: 'your_password',
+  password: 'jamesbond#007',
   port: 5432,
 });
 
@@ -34,7 +34,7 @@ app.use(
   session({
     secret: "your_secret_key",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 24 }, // 1 day
   })
 );
@@ -56,7 +56,7 @@ function isAuthenticated(req, res, next) {
 // TODO: Implement user signup logic
 // return JSON object with the following fields: {username, email, password}
 // use correct status codes and messages mentioned in the lab document
-app.post('/signup', isLoggedIn, async (req, res) => {
+app.post('/signup', async (req, res) => {
   const {username,email, password} = req.body;
   try{
     const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -78,26 +78,25 @@ app.post('/signup', isLoggedIn, async (req, res) => {
 app.post("/login", async (req, res) => {
   try{
     const {email, password} = req.body;
+    console.log(email);
+    console.log(password);
     const user = await pool.query('SELECT * FROM users WHERE email = $1',[email]);
     if(user.rows.length == 0){
       return res.status(400).json({message: 'Invalid Credentials'});
     }
-    const password_ret = users.rows[0].password_hash;
-    bcrypt.compare(password_ret, password, (err, result) => {
-      if (err) {
-          throw err;
-      }
-      if (result) {
-          // Passwords match, authentication successful
-          req.session.userId = user.rows[0].user_id;
-          req.session.username = user.rows[0].username;
-          return res.status(200).json({message: "Login successful"});
-      } else {
-          // Passwords don't match, authentication failed
-          return res.status(400).json({message: 'Invalid Credentials'});
-      }
-    });   }
+    const password_ret = user.rows[0].password_hash;
+    const isMatch = await bcrypt.compare(password, password_ret);
+    if (isMatch) {
+        req.session.userId = user.rows[0].user_id;
+        req.session.username = user.rows[0].username;
+        await new Promise((resolve) => req.session.save(resolve));
+        console.log("User logged in!!", req.session.userId);
+        return res.status(200).json({ message: "Login successful" });
+    }
+    return res.status(400).json({ message: "Invalid Credentials" });
+  }
   catch(error){
+    console.log(error);
     return res.status(500).json({message: 'Error logging in'});
   }
 });
@@ -106,7 +105,9 @@ app.post("/login", async (req, res) => {
 // TODO: Implement API used to check if the client is currently logged in or not.
 // use correct status codes and messages mentioned in the lab document
 app.get("/isLoggedIn", async (req, res) => {
-  if(!req.session.userId){
+  console.log("login check");
+  console.log(req.session.userId);
+  if(req.session.userId){
     return res.status(200).json({message: 'Logged in', username: req.session.username});
   }
   else{
@@ -117,6 +118,7 @@ app.get("/isLoggedIn", async (req, res) => {
 // TODO: Implement API used to logout the user
 // use correct status codes and messages mentioned in the lab document
 app.post("/logout", (req, res) => {
+  console.log("loggged out");
   try{
     req.session.destroy();
     return es.status(200).json({messgae: 'Logged out successfully'});
@@ -161,7 +163,7 @@ app.post("/add-to-cart", isAuthenticated, async (req, res) => {
     if(prod.rows[0].stock_quantity < quantity){
       return res.status(400).json({message: "Insufficient stock for ${prod.rows[0].name}."});
     }
-    await pool.query('INSRTY INTO cart (user_id, item_id, quantity) VALUES ($1,$2,$3)', [req.session.userId, prod.rows[0].product_id, quantity]);
+    await pool.query('INSERT INTO cart (user_id, item_id, quantity) VALUES ($1,$2,$3)', [req.session.userId, prod.rows[0].product_id, quantity]);
     return res.status(200).json({ message: "Successfully added ${quantity} of ${prod.rows[0].name} to your cart."});
 
   }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/config";
 
 const Signup = () => {
   const [username, setUsername] = useState("");
@@ -20,12 +21,16 @@ const Signup = () => {
     };
   
     try {
-      const response = await fetch("/signup", {
+      const response = await fetch(apiUrl+"/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({
+          username: username,
+          email: email,
+          password: password
+        }),
       });
   
       const text = await response.text(); // Read the response as text first

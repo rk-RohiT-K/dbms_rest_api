@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/config";
 
 const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("/isLoggedIn", { credentials: "include" })
+    fetch(apiUrl+"/isLoggedIn", { credentials: "include" })
       .then((response) => {
         if (!response.ok) {
           // If the response is not ok (status code not 200-299), throw an error

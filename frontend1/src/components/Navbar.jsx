@@ -1,9 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../config/config";
 
 const Navbar = () => {
   const handleLogout = () => {
-    fetch("/logout", {
+    fetch(apiUrl+"/logout", {
       method: "POST",
       credentials: "include",
     })

@@ -1,30 +1,49 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { apiUrl } from "../config/config";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch(apiUrl + "/isLoggedIn", { credentials: "include" });
+        if (response.status === 200) {
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking login status:", error);
+      }
+    };
+    checkLoginStatus();
+  }, [navigate]);
+
   const handleLogin = (e) => {
     e.preventDefault();
 
     const credentials = { email, password };
 
-    fetch("/login", {
+    fetch(apiUrl+"/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(credentials),
-      credentials: "include",
+      body: JSON.stringify({ "email": email, "password": password })
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.message === "Login successful") {
+      .then((response) => {
+        if(response.status === 200){
           navigate("/dashboard");
-        } else {
-          alert(data.message); // Show error if invalid credentials
+          return;
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if(data){
+          alert(data.message);
         }
       });
   };

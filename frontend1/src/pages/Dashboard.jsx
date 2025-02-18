@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { apiUrl } from "../config/config";
 
 const Dashboard = () => {
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("/isLoggedIn", { credentials: "include" })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.message === "Logged in") {
-          setUsername(data.username);
-        } else {
+    fetch(apiUrl+"/isLoggedIn", { credentials: "include" })
+      .then((response) => {
+        if(response.status !== 200){
           navigate("/login");
         }
       });
-  }, [navigate]);
+  }, []);
 
   return (
     <div>

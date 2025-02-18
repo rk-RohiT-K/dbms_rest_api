@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import { apiUrl } from "../config/config";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch("/list-products", { credentials: "include" })
+    fetch(apiUrl+"/list-products", { credentials: "include" })
       .then((response) => response.json())
       .then((data) => {
         if (data.message === "Products fetched successfully") {
@@ -20,7 +21,7 @@ const Products = () => {
   );
 
   const handleAddToCart = (productId, quantity) => {
-    fetch("/add-to-cart", {
+    fetch(apiUrl+"/add-to-cart", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
