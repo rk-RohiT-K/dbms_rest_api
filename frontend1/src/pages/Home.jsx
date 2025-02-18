@@ -1,17 +1,34 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router";
-import { apiUrl } from "../config/config";
+import { useNavigate } from "react-router-dom";
 
-// Use the API you implemented earlier, 
-// to check if the user is logged in or not
-// if yes, navigate to the dashboard
-// else to the login page
-
-// use the React Hooks useNavigate and useEffect
-// to implement this component
 const Home = () => {
+  const navigate = useNavigate();
 
-  return <div>HomePage</div>;
+  useEffect(() => {
+    fetch("/isLoggedIn", { credentials: "include" })
+      .then((response) => {
+        if (!response.ok) {
+          // If the response is not ok (status code not 200-299), throw an error
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Check if data and the expected 'message' property are present
+        if (data?.message === "Logged in") {
+          navigate("/dashboard");
+        } else {
+          navigate("/login");
+        }
+      })
+      .catch((error) => {
+        // Log any error (e.g., network issues or invalid JSON)
+        console.error("Error during fetch:", error);
+        navigate("/login"); // Redirect to login page if there's an error
+      });
+  }, [navigate]);
+
+  return <div>Loading...</div>;
 };
 
 export default Home;
