@@ -1,48 +1,59 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
-import { apiUrl } from "../config/config";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const navigate = useNavigate(); // Use this to redirect users
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-
-  // useEffect checks if the user is already logged in
-  // if already loggedIn then it will simply navigate to the dashboard
-  // TODO: Implement the checkStatus function.
-  useEffect(() => {
-    const checkStatus = async () => {
-      // Implement your logic here
-    };
-    checkStatus();
-  }, []);
-
-  // Read about useState to manage form data
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
-  // TODO: This function handles input field changes
-  const handleChange = (e) => {
-    // Implement your logic here
-  };
-
-  // TODO: Implement the login operation
-  // This function should send form data to the server
-  // and handle login success/failure responses.
-  // Use the API you made for handling this.
-  const handleSubmit = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-    // Implement the login logic here
+
+    const credentials = { email, password };
+
+    fetch("/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message === "Login successful") {
+          navigate("/dashboard");
+        } else {
+          alert(data.message); // Show error if invalid credentials
+        }
+      });
   };
 
-  // TODO: Use JSX to create a login form with input fields for:
-  // - Email
-  // - Password
-  // - A submit button
   return (
     <div>
-      {/* Implement the form UI here */}
+      <h2>Login</h2>
+      <form onSubmit={handleLogin}>
+        <input
+          type="email"
+          name="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+        />
+        <input
+          type="password"
+          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+      <p>
+        Don't have an account? <a href="/signup">Sign up here</a>
+      </p>
     </div>
   );
 };
