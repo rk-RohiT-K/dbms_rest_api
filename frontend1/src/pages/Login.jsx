@@ -11,7 +11,7 @@ const Login = () => {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
-        const response = await fetch(apiUrl + "/isLoggedIn", { credentials: "include" });
+        const response = await fetch(apiUrl + "/isLoggedIn", { credentials: 'include' });
         if (response.status === 200) {
           navigate("/dashboard");
         }
@@ -32,7 +32,8 @@ const Login = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ "email": email, "password": password })
+      body: JSON.stringify({ "email": email, "password": password }),
+      credentials: "include"
     })
       .then((response) => {
         if(response.status === 200){

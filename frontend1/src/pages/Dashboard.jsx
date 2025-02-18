@@ -13,6 +13,9 @@ const Dashboard = () => {
         if(response.status !== 200){
           navigate("/login");
         }
+        else{
+          
+        }
       });
   }, []);
 

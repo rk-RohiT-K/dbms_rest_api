@@ -45,13 +45,13 @@ app.use(
 
 // TODO: Implement authentication middleware
 // Redirect unauthenticated users to the login page with respective status code
-function isAuthenticated(req, res, next) {
-  if(!req.session.userId) {
-    res.redirect('/login');
-  } else {
-    next();
-  }
-}
+// function isAuthenticated(req, res, next) {
+//   if(!req.session.userId) {
+//     res.redirect('/login');
+//   } else {
+//     next();
+//   }
+// }
 
 // TODO: Implement user signup logic
 // return JSON object with the following fields: {username, email, password}
@@ -107,6 +107,7 @@ app.post("/login", async (req, res) => {
 app.get("/isLoggedIn", async (req, res) => {
   console.log("login check");
   console.log(req.session.userId);
+  console.log("Session: ", req.session);
   if(req.session.userId){
     return res.status(200).json({message: 'Logged in', username: req.session.username});
   }
@@ -121,7 +122,7 @@ app.post("/logout", (req, res) => {
   console.log("loggged out");
   try{
     req.session.destroy();
-    return es.status(200).json({messgae: 'Logged out successfully'});
+    return res.status(200).json({messgae: 'Logged out successfully'});
   }
   catch(error){
     return res.status(500).json({message: "Failed to log out"})
@@ -132,7 +133,7 @@ app.post("/logout", (req, res) => {
 // APIs for the products
 // use correct status codes and messages mentioned in the lab document
 // TODO: Fetch and display all products from the database
-app.get("/list-products", isAuthenticated, async (req, res) => {
+app.get("/list-products", async (req, res) => {
   try
   {
     if(!req.session.userId){
@@ -149,7 +150,7 @@ app.get("/list-products", isAuthenticated, async (req, res) => {
 
 // APIs for cart: add_to_cart, display-cart, remove-from-cart
 // TODO: impliment add to cart API which will add the quantity of the product specified by the user to the cart
-app.post("/add-to-cart", isAuthenticated, async (req, res) => {
+app.post("/add-to-cart", async (req, res) => {
   try
   {
     if(!req.session.userId){
@@ -174,13 +175,13 @@ app.post("/add-to-cart", isAuthenticated, async (req, res) => {
 });
 
 // TODO: Implement display-cart API which will returns the products in the cart
-app.get("/display-cart", isAuthenticated, async (req, res) => {
+app.get("/display-cart", async (req, res) => {
   try
   {
     if(!req.session.userId){
       return res.status(400).json({message: 'Unauthorized'});
     }
-    const cart_matches = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, (c.quantity * p.price) AS total_item_price FROM cart c JOIN products p ON c.item_id == p.product_id AND c.user_id = $1 ',[res.session.userId]);
+    const cart_matches = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, (c.quantity * p.price) AS total_item_price FROM cart c JOIN products p ON c.item_id = p.product_id AND c.user_id = $1 ',[res.session.userId]);
     const cart = cart_matches.rows;
     if(cart.length === 0){
       return res.status(200).json({ message: "No items in cart.", cart: [], totalPrice: 0})
@@ -200,7 +201,7 @@ app.get("/display-cart", isAuthenticated, async (req, res) => {
 });
 
 // TODO: Implement remove-from-cart API which will remove the product from the cart
-app.post("/remove-from-cart", isAuthenticated, async (req, res) => {
+app.post("/remove-from-cart", async (req, res) => {
   try
   {
     if(!req.session.userId){
@@ -221,7 +222,7 @@ app.post("/remove-from-cart", isAuthenticated, async (req, res) => {
 
 });
 // TODO: Implement update-cart API which will update the quantity of the product in the cart
-app.post("/update-cart", isAuthenticated, async (req, res) => {
+app.post("/update-cart", async (req, res) => {
   try
   {
     if(!req.session.userId){
@@ -270,7 +271,7 @@ app.post("/update-cart", isAuthenticated, async (req, res) => {
 
 // APIs for placing order and getting confirmation
 // TODO: Implement place-order API, which updates the order,orderitems,cart,orderaddress tables
-app.post("/place-order", isAuthenticated, async (req, res) => {
+app.post("/place-order", async (req, res) => {
   try
   {
     if(!req.session.userId){
@@ -312,7 +313,7 @@ app.post("/place-order", isAuthenticated, async (req, res) => {
 
 // API for order confirmation
 // TODO: same as lab4
-app.get("/order-confirmation", isAuthenticated, async (req, res) => {
+app.get("/order-confirmation", async (req, res) => {
   try
   {
     // assuming that order confirmation only occurs after order is placed.
