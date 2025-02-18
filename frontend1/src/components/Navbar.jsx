@@ -1,25 +1,26 @@
 import React from "react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
-  const navigate = useNavigate(); // Use this to redirect users
-
-  // TODO: Implement the handleLogout function.
-  // This function should do an API call to log the user out.
-  // On successful logout, redirect the user to the login page.
-  const handleLogout = async (e) => {
-    e.preventDefault();
-    // Implement logout logic here
+  const handleLogout = () => {
+    fetch("/logout", {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message === "Logged out successfully") {
+          window.location.href = "/login";
+        }
+      });
   };
 
-  // TODO: Use JSX to create a navigation bar with buttons for:
-  // - Home
-  // - Products
-  // - Cart
-  // - Logout
   return (
     <nav>
-      {/* Implement navigation buttons here */}
+      <Link to="/dashboard">Dashboard</Link>
+      <Link to="/products">Products</Link>
+      <Link to="/cart">Cart</Link>
+      <button onClick={handleLogout}>Logout</button>
     </nav>
   );
 };
