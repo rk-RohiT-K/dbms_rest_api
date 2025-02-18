@@ -1,91 +1,58 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-import { apiUrl } from "../config/config";
 
 const Products = () => {
-  const navigate = useNavigate(); // Use this to redirect users
+  const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState("");
 
-  // TODO: Implement the checkStatus function.
-  // This function should check if the user is logged in.
-  // If not logged in, redirect to the login page.
-  // if logged in, fetch the products
   useEffect(() => {
-    const checkStatus = async () => {
-      // Implement API call here to check login status
-    };
-    checkStatus();
+    fetch("/list-products", { credentials: "include" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message === "Products fetched successfully") {
+          setProducts(data.products);
+        }
+      });
   }, []);
 
-  // Read about useState to understand how to manage component state
-  const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(search.toLowerCase())
+  );
 
-  // NOTE: You are free to add more states and/or handler functions
-  // to implement the features that are required for this assignment
-
-  // TODO: Fetch products from the APIx
-  // This function should send a GET request to fetch products
-  const fetchProducts = async () => {
-    // Implement the API call here to fetch product data
-  };
-  
-  // TODO: Implement the product quantity change function
-  // If the user clicks on plus (+), then increase the quantity by 1
-  // If the user clicks on minus (-), then decrease the quantity by 1
-  const handleQuantityChange = (productId, change) => {
-
-  }
-
-  // TODO: Add the product with the given productId to the cart
-  // the quantity of this product can be accessed by using a state
-  // use the API you implemented earlier
-  // display appropriate error messages if any
-  const addToCart = (productId) => {
-
-  }
-
-  // TODO: Implement the search functionality
-  const handleSearch = (e) => {
-    e.preventDefault();
-    // Implement the search logic here
-    // use Array.prototype.filter to filter the products
-    // that match with the searchTerm
+  const handleAddToCart = (productId, quantity) => {
+    fetch("/add-to-cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ product_id: productId, quantity }),
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => alert(data.message)); // Handle response (success/error)
   };
 
-
-  // TODO: Display products with a table
-  // Display each product's details, such as ID, name, price, stock, etc.
   return (
-    <>
+    <div>
       <Navbar />
+      <h2>Products</h2>
+      <input
+        type="text"
+        placeholder="Search products"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
       <div>
-        <h1>Product List</h1>
-        {/* Implement the search form */}
-        <form onSubmit={handleSearch}>
-          <input
-            type="text"
-            placeholder="Search by product name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button type="submit">Search</button>
-        </form>
-        <table>
-          <thead>
-            <tr>
-              <th>Product ID</th>
-              <th>Product Name</th>
-              <th>Price</th>
-              <th>Stock Available</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Map over the products array to display each product */}
-          </tbody>
-        </table>
+        {filteredProducts.map((product) => (
+          <div key={product.id}>
+            <h3>{product.name}</h3>
+            <p>Price: ${product.price}</p>
+            <p>Stock: {product.stock}</p>
+            <button onClick={() => handleAddToCart(product.id, 1)}>Add to Cart</button>
+          </div>
+        ))}
       </div>
-    </>
+    </div>
   );
 };
 
