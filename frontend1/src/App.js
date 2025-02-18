@@ -1,28 +1,26 @@
 import React from "react";
-import { Router, Route, Routes } from "react-router";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/Notfound";  
+import NotFound from "./pages/Notfound";
 import Products from "./pages/Products";
 import Cart from "./pages/Cart";
 import OrderConfirmation from "./pages/OrderConfirmation";
 
 function App() {
   return (
-    <Router>
       <Routes>
-        <Route exact path="/" component={Home} />
-        <Route path="/signup" component={Signup} />
-        <Route path="/login" component={Login} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/products" component={Products} />
-        <Route path="/cart" component={Cart} />
-        <Route path="/order-confirmation" component={OrderConfirmation} />
-        <Route path="*" component={NotFound} />
+        <Route path="/" element={<Home />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/order-confirmation" element={<OrderConfirmation />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
-    </Router>
   );
 }
 
