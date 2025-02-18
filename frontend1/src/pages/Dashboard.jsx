@@ -1,30 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { apiUrl } from "../config/config";
 
 const Dashboard = () => {
-  const navigate = useNavigate(); // Use this to redirect users
+  const [username, setUsername] = useState("");
+  const navigate = useNavigate();
 
-  const [username, setUsername] = useState("User");
-
-  // TODO: Implement the checkStatus function.
-  // This function should check if the user is logged in.
-  // If not logged in, redirect to the login page.
   useEffect(() => {
-    const checkStatus = async () => {
-      // Implement API call here to check login status
-      // If logged in, then use setUsername to display
-      // the username
-    };
-    checkStatus();
-  }, []);
+    fetch("/isLoggedIn", { credentials: "include" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message === "Logged in") {
+          setUsername(data.username);
+        } else {
+          navigate("/login");
+        }
+      });
+  }, [navigate]);
 
   return (
     <div>
       <Navbar />
-      <h1>Hi {username}!</h1>
-      <div>Welcome to the Ecommerce App</div>
+      <h2>Welcome, {username}</h2>
+      {/* Additional Dashboard content goes here */}
     </div>
   );
 };
