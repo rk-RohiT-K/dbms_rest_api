@@ -225,7 +225,7 @@ app.post("/remove-from-cart", async (req, res) => {
     }
     const {productId} = req.body;
     const prod = await pool.query("SELECT * FROM cart WHERE item_id = $1 AND user_id=$2",[productId,req.session.userId]);
-    if(!prod.rows.length > 0){
+    if(prod.rows.length === 0){
       return res.status(400).json({ message: "Item not present in your cart."});
     }
     await pool.query('DELETE FROM cart WHERE item_id = $1 AND user_id = $2', [productId,req.session.userId]);
