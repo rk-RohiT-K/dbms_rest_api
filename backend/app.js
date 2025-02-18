@@ -157,15 +157,29 @@ app.post("/add-to-cart", async (req, res) => {
       return res.status(400).json({message: 'Unauthorized'});
     }
     const {prodId, quantity} = req.body;
-    const prod = await pool.query('SELECT * FROM products WHERE product_id = $1', [prodId]);
+    console.log("Product_id: ",prodId);
+    const prod = await pool.query('SELECT * FROM products WHERE product_id = $1;', [prodId]);
+    const cart = await pool.query('SELECT * FROM cart WHERE item_id = $1',[prodId]);
+    // console.log("Length: " , prod.rows.length);
     if(prod.rows.length !== 1){
       return res.status(400).json({message: 'Invalid product ID'});
     }
-    if(prod.rows[0].stock_quantity < quantity){
-      return res.status(400).json({message: "Insufficient stock for ${prod.rows[0].name}."});
+    
+    if(cart.rows.length === 0 ){
+      if(prod.rows[0].stock_quantity < quantity){
+        return res.status(400).json({message: "Insufficient stock for ${prod.rows[0].name}."});
+      }
+      await pool.query('INSERT INTO cart (user_id, item_id, quantity) VALUES ($1,$2,$3)', [req.session.userId, prod.rows[0].product_id, quantity]);
+      return res.status(200).json({ message: "Successfully added ${quantity} of ${prod.rows[0].name} to your cart."});
     }
-    await pool.query('INSERT INTO cart (user_id, item_id, quantity) VALUES ($1,$2,$3)', [req.session.userId, prod.rows[0].product_id, quantity]);
-    return res.status(200).json({ message: "Successfully added ${quantity} of ${prod.rows[0].name} to your cart."});
+    else{
+      const quantity_sought = cart.rows[0].quantity;
+      if(prod.rows[0].stock_quantity < (quantity+quantity_sought)){
+        return res.status(400).json({message: "Insufficient stock for ${prod.rows[0].name}."});
+      }
+      await pool.query('UPDATE cart SET quantity = $3 WHERE user_id = $1 AND item_id = $2;', [req.session.userId, prod.rows[0].product_id, quantity+quantity_sought]);
+      return res.status(200).json({ message: "Successfully added ${quantity} of ${prod.rows[0].name} to your cart."});
+    }
 
   }
   catch(err)
@@ -181,7 +195,9 @@ app.get("/display-cart", async (req, res) => {
     if(!req.session.userId){
       return res.status(400).json({message: 'Unauthorized'});
     }
-    const cart_matches = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, (c.quantity * p.price) AS total_item_price FROM cart c JOIN products p ON c.item_id = p.product_id AND c.user_id = $1 ',[res.session.userId]);
+
+    const cart_matches = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, (c.quantity * p.price) AS total_item_price FROM cart c JOIN products p ON c.item_id = p.product_id AND c.user_id = $1 ',[req.session.userId]);
+    // console.log("Cart: ", cart_matches);
     const cart = cart_matches.rows;
     if(cart.length === 0){
       return res.status(200).json({ message: "No items in cart.", cart: [], totalPrice: 0})
@@ -277,8 +293,9 @@ app.post("/place-order", async (req, res) => {
     if(!req.session.userId){
       return res.status(400).json({message: 'Unauthorized'});
     }
-    const order_items = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, p.stock_quantity FROM cart c JOIN products p ON c.item_id == p.product_id AND c.user_id = $1',[req.session.userId]);
-
+    const {street,city,pincode,state} = req.body;
+    const order_items = await pool.query('SELECT c.item_id,p.product_id, p.name, c.quantity, p.price, p.stock_quantity FROM cart c JOIN products p ON c.item_id = p.product_id AND c.user_id = $1',[req.session.userId]);
+    console.log("Flag1");
     if(order_items.rows.length <= 0){
       return res.status(400).json( "Cart is empty");
     }
@@ -290,16 +307,38 @@ app.post("/place-order", async (req, res) => {
         return res.status(400).json({message: "Insufficient stock for ${elem.name}"});
       }
     });
+    console.log("Flag2");
 
     await pool.query('BEGIN');
-    const orderId = await pool.query('INSERT INTO orders (user_id, order_date, total_amount) VALUES ($1,$2,$3) RETURNING order_id',[req.session.userId, new Date(),tot_amt]);
-    // storing the order_id in session state
-    // req.session.orderId = orderId;
-    //initiate 
-    await Promise.all(order_items.rows.map(elem => {
-      pool.query('INSERT INTO orderitems (order_id, product_id,quantity,price) VALUES ($1,$2,$3,$4)', orderId,elem.product_id,elem.quantity,elem.price);
-    }));
+    const result = await pool.query(
+      'INSERT INTO orders (user_id, order_date, total_amount) VALUES ($1, $2, $3) RETURNING order_id;', 
+      [req.session.userId, new Date(), tot_amt]
+    );
+    const orderId = result.rows[0].order_id;
+    console.log("Flag3");
+
+    // console.log("VALS: ",orderId, elem.product_id, elem.quantity, elem.price);
+    for(let i=0; i < order_items.rows.length;i++){
+      const elem = order_items.rows[i];
+      await pool.query(
+        'INSERT INTO orderitems (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4);', 
+        [orderId, elem.product_id, elem.quantity, elem.price]
+      );
+      await pool.query(
+        'UPDATE products SET stock_quantity = $2 WHERE product_id = $1',
+        [elem.product_id, elem.stock_quantity-elem.quantity]
+      );
+    }
+    await pool.query('DELETE FROM cart WHERE user_id=$1', [req.session.userId]);
+    
+    console.log("Flag4");
+    console.log("Vals $1,$2,$3,$4,$5",[orderId,street,city,state,pincode]);
+    await pool.query("INSERT INTO orderaddress (order_id,street,city,state,pincode) VALUES ($1,$2,$3,$4,$5);",[orderId,street,city,state,pincode]);
+    console.log("Flag5");
+
     await pool.query('COMMIT')
+    console.log("Flag6");
+
     return res.status(200).json({ message: "Order placed successfully"});
     
     
@@ -320,12 +359,18 @@ app.get("/order-confirmation", async (req, res) => {
     // storing the orderId in session 
     // othereise can user select * from orders where user_id = $1 ORDER BY order_dat DESC; and get the first row.
     // But it seems have to use the query only.
-    const latest_order = await pool.query('select * from orders where user_id = $1 ORDER BY order_dat DESC LIMIT 1');
-    if(!latest_order.rows.length > 0){
+    console.log("Flag 1\n");
+    const latest_order = await pool.query('select * from orders where user_id = $1 ORDER BY order_date DESC LIMIT 1',[req.session.userId]);
+    console.log("Query Res: ", latest_order);
+    const orderId = latest_order.rows[0].order_id;
+    if(latest_order.rows.length === 0){
       return res.status(400).json({message: 'Order not found'});
     }
-    const ordr = await pool.query('SELECT * FROM orders WHERE order_id = $1', [req.session.orderId]);
-    const ordr_items = await pool.query('SELECT o.order_id, o.product_id, o.quantity, o.price, p.name AS product_name FROM order_items o JOIN products p ON o.product_id = p.product_id WHERE o.order_id = $1',[req.session.orderId]);
+    console.log("Latest Order: ", orderId);
+    const ordr = await pool.query('SELECT * FROM orders WHERE order_id = $1', [orderId]);
+    console.log("Flag: 2\n");
+    const ordr_items = await pool.query('SELECT o.order_id, o.product_id, o.quantity, o.price, p.name AS product_name FROM orderitems o JOIN products p ON o.product_id = p.product_id WHERE o.order_id = $1',[orderId]);
+    console.log("Flag: 3");
     // delete req.session.orderId;
     return res.status(200).json({message: 'Order fetch successfully',order:ordr.rows[0], orderItems: ordr_items.rows});
     

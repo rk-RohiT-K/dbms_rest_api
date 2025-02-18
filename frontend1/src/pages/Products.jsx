@@ -26,7 +26,7 @@ const Products = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ product_id: productId, quantity }),
+      body: JSON.stringify({ prodId: productId, quantity }),
       credentials: "include",
     })
       .then((response) => response.json())
@@ -48,8 +48,8 @@ const Products = () => {
           <div key={product.id}>
             <h3>{product.name}</h3>
             <p>Price: ${product.price}</p>
-            <p>Stock: {product.stock}</p>
-            <button onClick={() => handleAddToCart(product.id, 1)}>Add to Cart</button>
+            <p>Stock: {product.stock_quantity}</p>
+            <button onClick={() => handleAddToCart(product.product_id, 1)}>Add to Cart</button>
           </div>
         ))}
       </div>

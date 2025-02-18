@@ -31,12 +31,18 @@ const Cart = () => {
   const fetchCart = async () => {
     try {
       const res = await fetch(`${apiUrl}/display-cart`, { credentials: "include" });
+      console.log("Flag 1\n");
       const data = await res.json();
+      console.log("Flag 2\n");
       if (res.status === 200) {
         setCart(data.cart);
         setTotalPrice(data.totalPrice);
+        console.log("Flag 3\n");
+
       } else {
         setMessage(data.message);
+        console.log(data.message);
+
       }
     } catch (err) {
       setError("Error fetching cart");

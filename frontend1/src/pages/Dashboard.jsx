@@ -12,11 +12,19 @@ const Dashboard = () => {
       .then((response) => {
         if(response.status !== 200){
           navigate("/login");
+          return;
         }
         else{
-          
+          return response.json();
         }
-      });
+      })
+      .then(
+        (data) => {
+          if(data){
+            setUsername(data.username);
+          }
+        }
+      );
   }, []);
 
   return (
